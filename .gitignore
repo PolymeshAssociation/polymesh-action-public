@@ -1,0 +1,13 @@
+# Planning and local development
+planning/
+
+# Node modules (if any testing is done locally)
+node_modules/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
