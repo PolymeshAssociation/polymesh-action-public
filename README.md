@@ -278,7 +278,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🆘 Support
 
 - 🐛 [Report Issues](https://github.com/PolymeshAssociation/polymesh-action-public/issues)
-- 💬 For general support, please contact the Polymesh Association
+- 💬 For general support, please contact Polymesh Labs
 
 ## 📦 Release Information
 
