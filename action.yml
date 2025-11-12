@@ -1,0 +1,49 @@
+name: 'SSH Commit Auth & Fast-Forward Merge'
+description: 'Validates SSH commit signatures and performs fast-forward merges'
+author: 'Polymesh Team'
+branding:
+  icon: 'shield'
+  color: 'blue'
+
+inputs:
+  allowed-signers:
+    description: 'SSH allowed signers file content'
+    required: true
+  github-token:
+    description: 'GitHub token with appropriate permissions'
+    required: true
+  comment-mode:
+    description: 'Comment feedback level: always, on-error, never'
+    required: false
+    default: 'on-error'
+  merge-method:
+    description: 'Merge method: fast-forward, merge'
+    required: false
+    default: 'fast-forward'
+  required-key-type:
+    description: 'Required SSH key type (e.g., ed25519-sk, rsa, ecdsa)'
+    required: false
+  auth-required:
+    description: 'Enforce authentication before fast-forward'
+    required: false
+    default: 'true'
+  base-branch:
+    description: 'Base branch for authentication validation'
+    required: false
+  head-branch:
+    description: 'Head branch for authentication validation'
+    required: false
+
+outputs:
+  auth-status:
+    description: 'Authentication result: success, failed, skipped'
+  merge-status:
+    description: 'Merge result: success, failed, skipped, not-requested'
+  failed-commits:
+    description: 'JSON array of failed commit information'
+  merge-sha:
+    description: 'SHA of the merge commit if successful'
+
+runs:
+  using: 'node20'
+  main: 'dist/index.js'
