@@ -331,8 +331,8 @@ class AuthenticationModule {
      */
     async getCommitSignatureInfo(commitSha) {
         try {
-            // Get key fingerprint and signer info
-            const keyOutput = await exec.getExecOutput('git', ['show', '--pretty=format:%GK', '--no-patch', commitSha], {
+            // Get full signature info - this contains the key type information
+            const fullSigOutput = await exec.getExecOutput('git', ['show', '--pretty=format:%GG', '--no-patch', commitSha], {
                 silent: true,
                 ignoreReturnCode: true
             });
@@ -340,18 +340,24 @@ class AuthenticationModule {
                 silent: true,
                 ignoreReturnCode: true
             });
-            const keyInfo = keyOutput.stdout.trim();
+            const fullSig = fullSigOutput.stdout.trim();
             const signerInfo = signerOutput.stdout.trim();
-            // Parse key type from key fingerprint or key info
+            // Parse key type from full signature info (%GG)
+            // Example formats:
+            // - "Good \"git\" signature with ED25519-SK key SHA256:..."
+            // - "Good \"git\" signature with RSA key SHA256:..."
+            // - "Good \"git\" signature with ECDSA key SHA256:..."
+            // IMPORTANT: Check for specific security key patterns (SK) BEFORE generic patterns
             let keyType = 'unknown';
-            if (keyInfo.includes('ssh-rsa'))
-                keyType = 'rsa';
-            else if (keyInfo.includes('ssh-ed25519'))
-                keyType = 'ed25519';
-            else if (keyInfo.includes('ecdsa-sha2'))
-                keyType = 'ecdsa';
-            else if (keyInfo.includes('sk-ssh-ed25519') || keyInfo.includes('sk-ecdsa'))
+            const upperSig = fullSig.toUpperCase();
+            if (upperSig.includes('ED25519-SK') || upperSig.includes('ECDSA-SK'))
                 keyType = 'ed25519-sk';
+            else if (upperSig.includes('RSA'))
+                keyType = 'rsa';
+            else if (upperSig.includes('ED25519'))
+                keyType = 'ed25519';
+            else if (upperSig.includes('ECDSA'))
+                keyType = 'ecdsa';
             return {
                 keyType,
                 signer: signerInfo || 'unknown'
