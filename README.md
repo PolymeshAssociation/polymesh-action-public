@@ -29,6 +29,11 @@ jobs:
       pull-requests: write
       issues: write
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Required for commit history validation
+
       - uses: PolymeshAssociation/polymesh-action-public@v1
         with:
           allowed-signers: ${{ vars.MIDDLEWARE_ALLOWED_SIGNERS }}
@@ -59,6 +64,11 @@ jobs:
       pull-requests: write
       issues: write
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Required for commit history validation
+
       - uses: PolymeshAssociation/polymesh-action-public@v1
         with:
           allowed-signers: ${{ vars.MIDDLEWARE_ALLOWED_SIGNERS }}
@@ -102,7 +112,13 @@ on:
 
 jobs:
   auth:
+    runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Required for commit history validation
+
       - uses: PolymeshAssociation/polymesh-action-public@v1
         with:
           allowed-signers: ${{ vars.ALLOWED_SIGNERS }}
@@ -123,7 +139,13 @@ jobs:
     if: >
       contains(github.event.comment.body, '/fast-forward') &&
       github.event.issue.pull_request
+    runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Required for commit history validation
+
       - uses: PolymeshAssociation/polymesh-action-public@v1
         with:
           allowed-signers: ${{ vars.ALLOWED_SIGNERS }}
@@ -149,7 +171,13 @@ on:
 
 jobs:
   manual-merge:
+    runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Required for commit history validation
+
       - uses: PolymeshAssociation/polymesh-action-public@v1
         with:
           allowed-signers: ${{ vars.ALLOWED_SIGNERS }}
@@ -179,6 +207,29 @@ jobs:
 - Automatic alerting for high-severity security events
 
 ## 🔍 Error Handling & Troubleshooting
+
+### Action Setup Issues
+
+**Issue**: `Failed to get commit range: The process '/usr/bin/git' failed with exit code 128`
+
+This error occurs when the repository is not checked out before the action runs. **Solution:**
+
+```yaml
+steps:
+  # ✅ REQUIRED: Always checkout the repository first
+  - name: Checkout repository
+    uses: actions/checkout@v4
+    with:
+      fetch-depth: 0  # Required for commit history validation
+
+  # ✅ Then run the action
+  - uses: PolymeshAssociation/polymesh-action-public@v1
+    with:
+      allowed-signers: ${{ vars.ALLOWED_SIGNERS }}
+      github-token: ${{ secrets.GITHUB_TOKEN }}
+```
+
+**Why this is required**: The action needs access to the git repository and full commit history to validate signatures. Without `actions/checkout@v4` with `fetch-depth: 0`, the runner doesn't have the necessary git data.
 
 ### Common SSH Authentication Issues
 
