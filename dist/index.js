@@ -51,9 +51,10 @@ const crypto_1 = __nccwpck_require__(6982);
  * SSH authentication module with secure file handling and comprehensive validation
  */
 class AuthenticationModule {
-    constructor(inputs, logger) {
+    constructor(inputs, logger, executionPlan) {
         this.inputs = inputs;
         this.logger = logger;
+        this.executionPlan = executionPlan;
         this.BATCH_SIZE = 50; // Process commits in batches to avoid memory issues
         this.MAX_COMMITS = 1000; // Safety limit for very large PRs
     }
@@ -185,9 +186,30 @@ class AuthenticationModule {
                 headSha = pr.head.sha;
             }
             else {
-                // Manual or comment-triggered: resolve branch SHAs
-                baseSha = await this.resolveBranchSha(this.inputs.baseBranch || 'main');
-                headSha = await this.resolveBranchSha(this.inputs.headBranch || 'HEAD');
+                // Manual or comment-triggered: resolve branch SHAs from execution plan
+                // Use origin/ prefix for remote branches to ensure they exist after fetch
+                const baseBranch = this.executionPlan.baseBranch;
+                const headBranch = this.executionPlan.headBranch;
+                core.debug(`Resolving branches: base=${baseBranch}, head=${headBranch}`);
+                // Try origin/ prefix first for base (most common case), fall back to local branch
+                try {
+                    baseSha = await this.resolveBranchSha(`origin/${baseBranch}`);
+                }
+                catch {
+                    baseSha = await this.resolveBranchSha(baseBranch);
+                }
+                // HEAD is typically already correct from checkout, but try head branch as fallback
+                try {
+                    headSha = await this.resolveBranchSha('HEAD');
+                }
+                catch {
+                    try {
+                        headSha = await this.resolveBranchSha(`origin/${headBranch}`);
+                    }
+                    catch {
+                        headSha = await this.resolveBranchSha(headBranch);
+                    }
+                }
             }
             // Get commits in range (excluding base commit)
             const output = await exec.getExecOutput('git', ['rev-list', '--reverse', `${baseSha}..${headSha}`], {
@@ -623,7 +645,7 @@ async function executeOperations(plan, inputs, logger) {
     // Phase 1: Authentication (if required)
     if (plan.requiresAuthentication) {
         core.info('🔐 Starting SSH commit authentication phase');
-        const authModule = new authentication_module_1.AuthenticationModule(inputs, logger);
+        const authModule = new authentication_module_1.AuthenticationModule(inputs, logger, plan);
         const authResult = await authModule.authenticateCommits();
         results.authStatus = authResult.status;
         results.failedCommits = authResult.failedCommits;
