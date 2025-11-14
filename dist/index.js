@@ -1097,40 +1097,18 @@ class FastForwardModule {
             }
         }
         catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             this.logger.completeOperation(operationId, 'failed', {
-                error: error instanceof Error ? error.message : 'Unknown error'
+                error: errorMessage
             });
-            // Handle specific merge errors with enhanced guidance
+            // Return failure with GitHub's actual error message
+            // Don't try to interpret or add guidance - just show what GitHub said
             if (error instanceof Error && 'status' in error) {
-                const status = error.status;
-                if (status === 409) {
-                    return {
-                        status: 'failed',
-                        message: 'Merge conflict detected',
-                        resolutionGuidance: this.generateConflictResolutionGuidance(prInfo)
-                    };
-                }
-                if (status === 403) {
-                    return {
-                        status: 'failed',
-                        message: 'Insufficient permissions to perform merge',
-                        resolutionGuidance: 'Please ensure the GitHub token has write permissions to this repository and the branch protection rules allow this merge operation.'
-                    };
-                }
-                if (status === 422) {
-                    return {
-                        status: 'failed',
-                        message: 'Fast-forward not possible - branches have diverged or base has moved ahead',
-                        resolutionGuidance: this.generateResolutionGuidance({
-                            conflictingFiles: [],
-                            baseCommit: prInfo.baseRef,
-                            headCommit: prInfo.headRef,
-                            mergeBase: prInfo.baseRef,
-                            aheadBy: 0,
-                            behindBy: 1
-                        })
-                    };
-                }
+                return {
+                    status: 'failed',
+                    message: errorMessage,
+                    sha: undefined
+                };
             }
             throw error;
         }
@@ -1596,6 +1574,7 @@ class OutputManager {
      * Generates guidance section for failures
      */
     generateGuidanceSection(results) {
+        var _a;
         const sections = [];
         sections.push('### 🛠️ Next Steps');
         sections.push('');
@@ -1628,26 +1607,16 @@ class OutputManager {
             sections.push('');
         }
         if (results.mergeStatus === 'failed') {
-            sections.push('#### Merge Failed');
+            sections.push('#### ❌ Fast-Forward Merge Failed');
             sections.push('');
-            sections.push('The fast-forward merge could not be completed automatically.');
-            sections.push('This usually indicates merge conflicts or that the branches have diverged.');
+            sections.push('GitHub rejected the merge with the following error:');
             sections.push('');
-            sections.push('**General resolution steps:**');
-            sections.push('1. Update your local repository:');
-            sections.push('   ```bash');
-            sections.push('   git fetch --all');
-            sections.push('   ```');
-            sections.push('2. Rebase your branch on the target branch:');
-            sections.push('   ```bash');
-            sections.push('   git rebase origin/main  # Replace with your target branch');
-            sections.push('   ```');
-            sections.push('3. Resolve any conflicts that arise');
-            sections.push('4. Push the updated branch:');
-            sections.push('   ```bash');
-            sections.push('   git push --force-with-lease');
-            sections.push('   ```');
-            sections.push('5. Re-run the `/fast-forward` command');
+            if ((_a = results.mergeResult) === null || _a === void 0 ? void 0 : _a.message) {
+                sections.push(`> ${results.mergeResult.message}`);
+            }
+            else {
+                sections.push('> Unknown error occurred during merge');
+            }
             sections.push('');
         }
         sections.push('**Need more help?** ');
