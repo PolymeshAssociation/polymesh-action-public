@@ -33,17 +33,62 @@ inputs:
   head-branch:
     description: 'Head branch for authentication validation'
     required: false
+  checkout-ref:
+    description: 'Git ref to checkout (branch, tag, SHA, or PR head). Defaults to the triggered ref.'
+    required: false
+  checkout-fetch-depth:
+    description: 'Number of commits to fetch. 0 indicates full history (required for commit signature validation).'
+    required: false
+    default: '0'
+  checkout-token:
+    description: 'Token for checkout. Defaults to github-token input value.'
+    required: false
 
 outputs:
   auth-status:
     description: 'Authentication result: success, failed, skipped'
+    value: ${{ steps.polymesh.outputs.auth-status }}
   merge-status:
     description: 'Merge result: success, failed, skipped, not-requested'
+    value: ${{ steps.polymesh.outputs.merge-status }}
   failed-commits:
     description: 'JSON array of failed commit information'
+    value: ${{ steps.polymesh.outputs.failed-commits }}
   merge-sha:
     description: 'SHA of the merge commit if successful'
+    value: ${{ steps.polymesh.outputs.merge-sha }}
 
 runs:
-  using: 'node20'
-  main: 'dist/index.js'
+  using: 'composite'
+  steps:
+    - name: Log checkout configuration
+      shell: bash
+      run: |
+        if [ -n "${{ inputs.checkout-token }}" ]; then
+          echo "Using provided checkout-token for repository checkout"
+        else
+          echo "Using github-token for repository checkout"
+        fi
+        echo "Fetch depth: ${{ inputs.checkout-fetch-depth || '0' }}"
+        echo "Ref: ${{ inputs.checkout-ref || '(default)' }}"
+
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: ${{ inputs.checkout-fetch-depth || '0' }}
+        ref: ${{ inputs.checkout-ref }}
+        token: ${{ inputs.checkout-token || inputs.github-token }}
+    
+    - name: Run Polymesh Action
+      id: polymesh
+      run: node ${{ github.action_path }}/dist/index.js
+      shell: bash
+      env:
+        INPUT_ALLOWED-SIGNERS: ${{ inputs.allowed-signers }}
+        INPUT_GITHUB-TOKEN: ${{ inputs.github-token }}
+        INPUT_COMMENT-MODE: ${{ inputs.comment-mode }}
+        INPUT_MERGE-METHOD: ${{ inputs.merge-method }}
+        INPUT_REQUIRED-KEY-TYPE: ${{ inputs.required-key-type }}
+        INPUT_AUTH-REQUIRED: ${{ inputs.auth-required }}
+        INPUT_BASE-BRANCH: ${{ inputs.base-branch }}
+        INPUT_HEAD-BRANCH: ${{ inputs.head-branch }}
