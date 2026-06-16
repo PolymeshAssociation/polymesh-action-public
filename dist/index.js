@@ -2662,7 +2662,7 @@ class InputValidator {
     validateGitHubTokenFormat(token) {
         const tokenPatterns = [
             /^ghp_[A-Za-z0-9]{36,}$/, // Personal access token
-            /^ghs_[A-Za-z0-9\.\-_]{36,}$/, // Server-to-server token
+            /^ghs_[A-Za-z0-9.\-_]{36,}$/, // Server-to-server token (stateless JWT format since May 2026)
             /^gho_[A-Za-z0-9]{36,}$/, // OAuth token
             /^github_pat_[A-Za-z0-9_]{82,}$/, // Fine-grained PAT
             /^ghu_[A-Za-z0-9]{36,}$/ // User access token
